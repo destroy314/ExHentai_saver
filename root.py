@@ -3,9 +3,7 @@ from tkinter.filedialog import *
 from tkinter import *
 import urllib.request
 import requests
-import time
-import re
-import os
+import time, re, os
 
 root = Tk()
 root.title("ExHentai")
@@ -29,6 +27,8 @@ imgname = StringVar()
 imgurl=StringVar()
 originalimgurl=StringVar()
 realoriginalimgurl=StringVar()
+
+a = 0
 
 
 def gethtml(url):#获取网页源码
@@ -98,13 +98,26 @@ def downloadall(html):#下载所有图片
         reg = r'<a href="([^>]+)">Download'#匹配原图地址
         originalimgurlre = re.compile(reg)
         originalimgurl.set("".join(re.findall(originalimgurlre,html)))#设定原图地址
-        
+
+
         if originalimgurl.get() == "":#没原图就直接下，有原图就下原图
             imgsave(imgurl.get(),imgname.get())
         else:
             originalimgsave(originalimgurl.get(),imgname.get())
+
+        global a
+        if a == 3:#有图片下载失败就停止下载
+            fail = Toplevel()
+            fali.resizable(0,0)
+            Label(fali, text=imgname.get()+"下载失败").pack(padx=20, pady=5)
+            url.set("")
+            name.set("未知")
+            number.set("未知")
+            break
+        else:
+            a = 0
         
-        reg = r'<a id="next" onclick="return load_image.[0-9]{1,4}.{15}" href="([^>]+)">'#匹配下一页链接
+        reg = r'<a id="next" onclick="return load_image.[0-9]+.{15}" href="([^>]+)">'#匹配下一页链接
         urlre = re.compile(reg)
         urllist = re.findall(urlre,html)
         nexturl.set("".join(urllist[0]))#设定链接
@@ -116,7 +129,7 @@ def downloadall(html):#下载所有图片
             url.set("")
             name.set("未知")
             number.set("未知")
-            break#跳出循环
+            break
         else:#设定新的链接
             url.set(nexturl.get())
         
@@ -126,14 +139,16 @@ def downloadall(html):#下载所有图片
 def imgsave(imgurl,imgname):#下载这张图片
     url = str(imgurl)
     path = str(imgpath.get())
-    while 1:#服务器无响应的异常处理
+    global a
+    while a < 3:#服务器无响应的异常处理
         try:
             urllib.request.urlretrieve(url, path+"/"+imgname)
         except:
+            a = a + 1
             time.sleep(1)
         else:
             break
-
+    
 
 def originalimgsave(originalimgurl,imgname):#下载这张图片的原始大小
     path = str(imgpath.get())
@@ -145,10 +160,12 @@ def originalimgsave(originalimgurl,imgname):#下载这张图片的原始大小
         else:
             break
     realurl = response.headers["Location"]
-    while 1:#服务器无响应的异常处理
+    global a
+    while a < 3:#服务器无响应的异常处理
         try:
             urllib.request.urlretrieve(realurl, path+"/"+imgname)
         except:
+            a = a + 1
             time.sleep(1)
         else:
             break
