@@ -29,6 +29,8 @@ originalimgurl=StringVar()
 realoriginalimgurl=StringVar()
 
 a = 0
+v = IntVar()
+v.set(1)
 
 
 def gethtml(url):#获取网页源码
@@ -100,7 +102,9 @@ def downloadall(html):#下载所有图片
         originalimgurl.set("".join(re.findall(originalimgurlre,html)))#设定原图地址
 
 
-        if originalimgurl.get() == "":#没原图就直接下，有原图就下原图
+        if v.get() == 0:
+            imgsave(imgurl.get(),imgname.get())
+        elif originalimgurl.get() == "":#没原图就直接下，有原图就下原图
             imgsave(imgurl.get(),imgname.get())
         else:
             originalimgsave(originalimgurl.get(),imgname.get())
@@ -196,6 +200,9 @@ addresslabel_show = Label(addressframe, textvariable=address).pack(side=LEFT)#�
 addressbutton = Button(addressframe, text="保存", command=getaddress).pack(side=RIGHT)#保存按钮
 addressframe.pack()
 
-downloadbutton = Button(root, text="下载", command=download).pack()#下载按钮
+downloadframe = Frame()
+downloadoriginal = Checkbutton(downloadframe, text="下载原图", variable=v).pack(side=LEFT)#下载原图选择按钮
+downloadbutton = Button(downloadframe, text="下载", command=download).pack(side=RIGHT)#下载按钮
+downloadframe.pack()
 
 root.mainloop()
