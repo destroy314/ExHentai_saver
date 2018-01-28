@@ -6,7 +6,7 @@ import requests
 import time, re, os
 
 root = Tk()
-root.title("ExHentai")
+root.title("ExHentai_saver")
 
 headers = {
     'User-Agent':
@@ -43,17 +43,15 @@ def gethtml(url):#获取网页源码
 
 
 def getname(html):#获取图集名称
-    reg = r'<h1 id="gj">([^>]+)</h1>'
-    namere = re.compile(reg)
+    namere = re.compile(r'<h1 id="gj">([^>]+)</h1>')
     name.set("".join(re.findall(namere, html)))
     if name.get() == "":#如果没有原名
-        reg = r'<h1 id="gn">([^>]+)</h1>'
-        namere = re.compile(reg)
+        namere = re.compile(r'<h1 id="gn">([^>]+)</h1>')
         name.set("".join(re.findall(namere, html)))
 
+
 def getnumber(html):#获取图片张数
-    reg = r'<td class="gdt2">([0-9]+) pages</td>'
-    numberre = re.compile(reg)
+    numberre = re.compile(r'<td class="gdt2">([0-9]+) pages</td>')
     number.set(re.findall(numberre, html))
 
 
@@ -67,18 +65,15 @@ def getaddress():
     address.set(askdirectory())
 
 
-
 def downloadall(html):#下载所有图片
     judgmenturl = str(url.get())
-    reg = r'exhentai.org/s/'#检查地址是图集还是图片
-    galleryre = re.compile(reg)
+    galleryre = re.compile(r'exhentai.org/s/')#检查地址是图集还是图片
     judgment = "".join(re.findall(galleryre,judgmenturl))
     if judgment == "":
         imgpath.set(address.get()+"/"+name.get())
         path = str(imgpath.get())
         os.makedirs(path)
-        reg = r'<a href="([^>]+)"><img alt="0*1"'#匹配首张图片的链接
-        firstre = re.compile(reg)
+        firstre = re.compile(r'<a href="([^>]+)"><img alt="0*1"')#匹配首张图片的链接
         url.set("".join(re.findall(firstre,html)))
     else:
         imgpath.set(address.get())
@@ -88,17 +83,14 @@ def downloadall(html):#下载所有图片
 
         html = gethtml(url.get())
 
-        reg = r'<div>([^>]+\.(?:jpg|png))'#匹配图片名称
-        imgnamere = re.compile(reg)
+        imgnamere = re.compile(r'<div>([^>]+\.(?:jpg|png))')#匹配图片名称
         imglist = re.findall(imgnamere,html)
-        imgname.set("".join(imglist[0]))#设定图片名称
+        imgname.set("".join(imglist[0]))#设定图片名称，名称会匹配到两个一样的
 
-        reg = r'<img id="img" src="(.+)" style="'#匹配图片地址
-        imgurlre = re.compile(reg)
+        imgurlre = re.compile(r'<img id="img" src="(.+)" style="')#匹配图片地址
         imgurl.set("".join(re.findall(imgurlre,html)))#设定图片地址
 
-        reg = r'<a href="([^>]+)">Download'#匹配原图地址
-        originalimgurlre = re.compile(reg)
+        originalimgurlre = re.compile(r'<a href="([^>]+)">Download')#匹配原图地址
         originalimgurl.set("".join(re.findall(originalimgurlre,html)))#设定原图地址
 
 
@@ -121,10 +113,9 @@ def downloadall(html):#下载所有图片
         else:
             a = 0
         
-        reg = r'<a id="next" onclick="return load_image.[0-9]+.{15}" href="([^>]+)">'#匹配下一页链接
-        urlre = re.compile(reg)
+        urlre = re.compile(r'<a id="next" onclick="return load_image.[0-9]+.{15}" href="([^>]+)">')#匹配下一页链接
         urllist = re.findall(urlre,html)
-        nexturl.set("".join(urllist[0]))#设定链接
+        nexturl.set("".join(urllist[0]))#设定链接，链接会匹配到两个一样的
 
         if url.get() == nexturl.get():#与当前页链接比对
             over = Toplevel()
