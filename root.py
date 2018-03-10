@@ -24,11 +24,11 @@ address = StringVar()
 address.set("选择位置")
 imgpath = StringVar()
 imgname = StringVar()
-imgurl=StringVar()
-originalimgurl=StringVar()
-realoriginalimgurl=StringVar()
-
-a = 0
+imgurl = StringVar()
+originalimgurl = StringVar()
+newurl = StringVar()
+a = IntVar()
+a.set(0)
 v = IntVar()
 v.set(1)
 
@@ -65,6 +65,27 @@ def getaddress():
     address.set(askdirectory())
 
 
+def re(url):
+    html = gethtml(url)
+
+    imgnamere = re.compile(r'<div>([^>]+\.(?:jpg|png))')#匹配图片名称
+    imglist = re.findall(imgnamere,html)
+    imgname.set("".join(imglist[0]))#设定图片名称，名称会匹配到两个一样的
+
+    imgurlre = re.compile(r'<img id="img" src="(.+)" style="')#匹配图片地址
+    imgurl.set("".join(re.findall(imgurlre,html)))#设定图片地址
+
+    originalimgurlre = re.compile(r'<a href="([^>]+)">Download')#匹配原图地址
+    originalimgurl.set("".join(re.findall(originalimgurlre,html)))#设定原图地址
+        
+    urlre = re.compile(r'load_image.\d+.{15}" href="([^>]+)"><img id')#匹配下一页链接
+    nexturl.set("".join(re.findall(urlre,html)))#设定链接
+
+    newurlre = re.compile(r'"return nl\(\'(\d{5}-\d{6})\'\)"')#匹配新链接
+    newurl.set("".join(re.findall(newurlre,html)))#设定新链接
+    newurl.set(url.get()+"#?nl="+newurl.get())
+
+
 def downloadall(html):#下载所有图片
     judgmenturl = str(url.get())
     galleryre = re.compile(r'exhentai.org/s/')#检查地址是图集还是图片
@@ -80,19 +101,10 @@ def downloadall(html):#下载所有图片
         path = str(imgpath.get())
 
     while 1:#无限循环下载图片
+        re(url.get())
 
-        html = gethtml(url.get())
-
-        imgnamere = re.compile(r'<div>([^>]+\.(?:jpg|png))')#匹配图片名称
-        imglist = re.findall(imgnamere,html)
-        imgname.set("".join(imglist[0]))#设定图片名称，名称会匹配到两个一样的
-
-        imgurlre = re.compile(r'<img id="img" src="(.+)" style="')#匹配图片地址
-        imgurl.set("".join(re.findall(imgurlre,html)))#设定图片地址
-
-        originalimgurlre = re.compile(r'<a href="([^>]+)">Download')#匹配原图地址
-        originalimgurl.set("".join(re.findall(originalimgurlre,html)))#设定原图地址
-
+        if url.get() == nexturl.get():#与当前页链接比对
+            b = 1
 
         if v.get() == 0:
             imgsave(imgurl.get(),imgname.get())
@@ -101,8 +113,7 @@ def downloadall(html):#下载所有图片
         else:
             originalimgsave(originalimgurl.get(),imgname.get())
 
-        global a
-        if a == 3:#有图片下载失败就停止下载
+        if a.get() == 2:#有图片下载失败就停止下载
             fail = Toplevel()
             fali.resizable(0,0)
             Label(fali, text=imgname.get()+"下载失败").pack(padx=20, pady=5)
@@ -111,13 +122,9 @@ def downloadall(html):#下载所有图片
             number.set("未知")
             break
         else:
-            a = 0
-        
-        urlre = re.compile(r'<a id="next" onclick="return load_image.[0-9]+.{15}" href="([^>]+)">')#匹配下一页链接
-        urllist = re.findall(urlre,html)
-        nexturl.set("".join(urllist[0]))#设定链接，链接会匹配到两个一样的
+            a.set(0)
 
-        if url.get() == nexturl.get():#与当前页链接比对
+        if b == 1:#如果下一页链接与当前页链接相同则完成下载
             over = Toplevel()
             over.resizable(0,0)
             Label(over, text="下载完成").pack(padx=20, pady=5)
@@ -134,35 +141,47 @@ def downloadall(html):#下载所有图片
 def imgsave(imgurl,imgname):#下载这张图片
     url = str(imgurl)
     path = str(imgpath.get())
-    global a
-    while a < 3:#服务器无响应的异常处理
+    while a.get() < 2:#服务器无响应的异常处理
+        try:
+            urllib.request.urlretrieve(url, path+"/"+imgname)#下载图片
+        except:
+            a.set(a.get() + 1)
+            time.sleep(1)#若失败则将a加一并等待一秒
+        else:
+            a.set(0)
+            break#若成功则跳出循环
+    a.set(0)
+    re(newurl.get())
+    url = str(imgurl.get())
+    while a.get() < 2:#从新链接下载图片
         try:
             urllib.request.urlretrieve(url, path+"/"+imgname)
         except:
-            a = a + 1
+            a.set(a.get() + 1)
             time.sleep(1)
         else:
+            a.set(0)
             break
-    
+
 
 def originalimgsave(originalimgurl,imgname):#下载这张图片的原始大小
     path = str(imgpath.get())
     while 1:#服务器无响应的异常处理
         try:#获取服务器响应
-            response = requests.get(originalimgurl, headers=headers, allow_redirects=False)
+            response = requests.get(originalimgurl, headers=headers, allow_redirects=False)#获取原图真实地址
         except:
             time.sleep(1)
         else:
             break
     realurl = response.headers["Location"]
-    global a
-    while a < 3:#服务器无响应的异常处理
+    while a.get() < 2:#服务器无响应的异常处理
         try:
             urllib.request.urlretrieve(realurl, path+"/"+imgname)
         except:
-            a = a + 1
+            a.set(a.get() + 1)
             time.sleep(1)
         else:
+            a.set(0)
             break
 
 
