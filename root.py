@@ -5,8 +5,11 @@ import urllib.request
 import requests
 import time, re, os
 
+
 root = Tk()
-root.title("ExHentai_saver")
+root.title("")
+root.iconbitmap("favicon.ico")
+
 
 headers = {
     'User-Agent':
@@ -65,8 +68,8 @@ def getaddress():
     address.set(askdirectory())
 
 
-def re(url):
-    html = gethtml(url)
+def pagere(pageurl):
+    html = gethtml(pageurl)
 
     imgnamere = re.compile(r'<div>([^>]+\.(?:jpg|png))')#匹配图片名称
     imglist = re.findall(imgnamere,html)
@@ -101,10 +104,7 @@ def downloadall(html):#下载所有图片
         path = str(imgpath.get())
 
     while 1:#无限循环下载图片
-        re(url.get())
-
-        if url.get() == nexturl.get():#与当前页链接比对
-            b = 1
+        pagere(url.get())
 
         if v.get() == 0:
             imgsave(imgurl.get(),imgname.get())
@@ -124,7 +124,7 @@ def downloadall(html):#下载所有图片
         else:
             a.set(0)
 
-        if b == 1:#如果下一页链接与当前页链接相同则完成下载
+        if url.get() == nexturl.get():#如果下一页链接与当前页链接相同则完成下载
             over = Toplevel()
             over.resizable(0,0)
             Label(over, text="下载完成").pack(padx=20, pady=5)
@@ -138,12 +138,12 @@ def downloadall(html):#下载所有图片
         time.sleep(1)#据说这样可以防止被防火墙ban掉
 
 
-def imgsave(imgurl,imgname):#下载这张图片
-    url = str(imgurl)
+def imgsave(saveimgurl,saveimgname):#下载这张图片
+    url = str(saveimgurl)
     path = str(imgpath.get())
     while a.get() < 2:#服务器无响应的异常处理
         try:
-            urllib.request.urlretrieve(url, path+"/"+imgname)#下载图片
+            urllib.request.urlretrieve(url, path+"/"+saveimgname)#下载图片
         except:
             a.set(a.get() + 1)
             time.sleep(1)#若失败则将a加一并等待一秒
@@ -151,11 +151,11 @@ def imgsave(imgurl,imgname):#下载这张图片
             a.set(0)
             break#若成功则跳出循环
     a.set(0)
-    re(newurl.get())
+    pagere(newurl.get())
     url = str(imgurl.get())
     while a.get() < 2:#从新链接下载图片
         try:
-            urllib.request.urlretrieve(url, path+"/"+imgname)
+            urllib.request.urlretrieve(url, path+"/"+saveimgname)
         except:
             a.set(a.get() + 1)
             time.sleep(1)
@@ -164,11 +164,11 @@ def imgsave(imgurl,imgname):#下载这张图片
             break
 
 
-def originalimgsave(originalimgurl,imgname):#下载这张图片的原始大小
+def originalimgsave(saveoriginalimgurl,saveimgname):#下载这张图片的原始大小
     path = str(imgpath.get())
     while 1:#服务器无响应的异常处理
         try:#获取服务器响应
-            response = requests.get(originalimgurl, headers=headers, allow_redirects=False)#获取原图真实地址
+            response = requests.get(saveoriginalimgurl, headers=headers, allow_redirects=False)#获取原图真实地址
         except:
             time.sleep(1)
         else:
@@ -176,7 +176,7 @@ def originalimgsave(originalimgurl,imgname):#下载这张图片的原始大小
     realurl = response.headers["Location"]
     while a.get() < 2:#服务器无响应的异常处理
         try:
-            urllib.request.urlretrieve(realurl, path+"/"+imgname)
+            urllib.request.urlretrieve(realurl, path+"/"+saveimgname)
         except:
             a.set(a.get() + 1)
             time.sleep(1)
