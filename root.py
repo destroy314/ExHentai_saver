@@ -47,10 +47,14 @@ def gethtml(url):#获取网页源码
 
 def getname(html):#获取图集名称
     namere = re.compile(r'<h1 id="gj">([^>]+)</h1>')
-    name.set("".join(re.findall(namere, html)))
+    originalname = "".join(re.findall(namere, html))
+    legalname = re.sub(r'[?*/\\<>:"|]',"",originalname)#删去图集名称中不能作为文件名的字符
+    name.set(legalname)
     if name.get() == "":#如果没有原名
         namere = re.compile(r'<h1 id="gn">([^>]+)</h1>')
-        name.set("".join(re.findall(namere, html)))
+        originalname = "".join(re.findall(namere, html))
+        legalname = re.sub(r'[?*/\\<>:"|]',"",originalname)
+        name.set(legalname)
 
 
 def getnumber(html):#获取图片张数
@@ -114,9 +118,10 @@ def downloadall(html):#下载所有图片
             originalimgsave(originalimgurl.get(),imgname.get())
 
         if a.get() == 2:#有图片下载失败就停止下载
-            fail = Toplevel()
-            fali.resizable(0,0)
-            Label(fali, text=imgname.get()+"下载失败").pack(padx=20, pady=5)
+            a.set(0)
+            over = Toplevel()
+            over.resizable(0,0)
+            Label(over, text=imgname.get()+"下载失败").pack(padx=20, pady=5)
             url.set("")
             name.set("未知")
             number.set("未知")
@@ -135,7 +140,7 @@ def downloadall(html):#下载所有图片
         else:#设定新的链接
             url.set(nexturl.get())
         
-        time.sleep(1)#据说这样可以防止被防火墙ban掉
+        time.sleep(0.5)#据说这样可以防止被防火墙ban掉
 
 
 def imgsave(saveimgurl,saveimgname):#下载这张图片
