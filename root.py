@@ -19,21 +19,23 @@ headers = {
 }
 url = StringVar()
 nexturl = StringVar()
-name = StringVar()
+name = StringVar()#窗口上显示的图集名称
 name.set("未知")
-number = StringVar()
+number = StringVar()#窗口上显示的图片数
 number.set("未知")
-address = StringVar()
+address = StringVar()#窗口上显示的保存路径
 address.set("选择位置")
 imgpath = StringVar()
 imgname = StringVar()
 imgurl = StringVar()
 originalimgurl = StringVar()
 newurl = StringVar()
-a = IntVar()
+a = IntVar()#记录图片下载失败次数
 a.set(0)
-v = IntVar()
-v.set(1)
+v = IntVar()#判断是否选中下载原图复选框
+v.set(1)#默认为选中
+j = IntVar()#判断在下载的是图集还是图片
+j.set(0)#0为图集，1为图片
 
 
 def gethtml(url):#获取网页源码
@@ -98,12 +100,14 @@ def downloadall(html):#下载所有图片
     galleryre = re.compile(r'exhentai.org/s/')#检查地址是图集还是图片
     judgment = "".join(re.findall(galleryre,judgmenturl))
     if judgment == "":
+        j.set(0)
         imgpath.set(address.get()+"/"+name.get())
         path = str(imgpath.get())
         os.makedirs(path)
         firstre = re.compile(r'<a href="([^>]+)"><img alt="0*1"')#匹配首张图片的链接
         url.set("".join(re.findall(firstre,html)))
     else:
+        j.set(1)
         imgpath.set(address.get())
         path = str(imgpath.get())
 
@@ -118,6 +122,8 @@ def downloadall(html):#下载所有图片
             originalimgsave(originalimgurl.get(),imgname.get())
 
         if a.get() == 2:#有图片下载失败就停止下载
+            if j.get() == 0:#如果正下载的是图集
+                address.set(address.get()+"/"+name.get())
             a.set(0)
             over = Toplevel()
             over.resizable(0,0)
