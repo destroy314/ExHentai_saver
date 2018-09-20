@@ -34,8 +34,11 @@ a = IntVar()#记录图片下载失败次数
 a.set(0)
 v = IntVar()#判断是否选中下载原图复选框
 v.set(1)#默认为选中
+r = IntVar()#判断是否选中重命名复选框
+r.set(0)#默认为不选中
 j = IntVar()#判断在下载的是图集还是图片
 j.set(0)#0为图集，1为图片
+n = 1
 
 
 def gethtml(url):#获取网页源码
@@ -75,11 +78,18 @@ def getaddress():
 
 
 def pagere(pageurl):
+    global n
     html = gethtml(pageurl)
 
     imgnamere = re.compile(r'<div>([^>]+\.(?:jpg|png))')#匹配图片名称
     imglist = re.findall(imgnamere,html)
-    imgname.set("".join(imglist[0]))#设定图片名称，名称会匹配到两个一样的
+    if r.get() == 0:
+        imgname.set("".join(imglist[0]))#设定图片名称，名称会匹配到两个一样的
+    else:
+        imgnamestr = "".join(imglist[0])
+        exnamere = re.compile(r'\.(?:jpg|png)')#匹配扩展名
+        exnamelist = re.findall(exnamere,imgnamestr)
+        imgname.set(str(n)+"".join(exnamelist[0]))#图片名称设为编号
 
     imgurlre = re.compile(r'<img id="img" src="(.+)" style="')#匹配图片地址
     imgurl.set("".join(re.findall(imgurlre,html)))#设定图片地址
@@ -96,6 +106,7 @@ def pagere(pageurl):
 
 
 def downloadall(html):#下载所有图片
+    global n
     judgmenturl = str(url.get())
     galleryre = re.compile(r'exhentai.org/s/')#检查地址是图集还是图片
     judgment = "".join(re.findall(galleryre,judgmenturl))
@@ -142,12 +153,12 @@ def downloadall(html):#下载所有图片
             url.set("")
             name.set("未知")
             number.set("未知")
+            n = 1
             break
         else:#设定新的链接
             url.set(nexturl.get())
+            n = n + 1
         
-        time.sleep(0.5)#据说这样可以防止被防火墙ban掉
-
 
 def imgsave(saveimgurl,saveimgname):#下载这张图片
     url = str(saveimgurl)
@@ -222,7 +233,8 @@ addressbutton = Button(addressframe, text="保存", command=getaddress).pack(sid
 addressframe.pack()
 
 downloadframe = Frame()
-downloadoriginal = Checkbutton(downloadframe, text="下载原图", variable=v).pack(side=LEFT)#下载原图选择按钮
+remane = Checkbutton(downloadframe, text="重命名", variable=r).pack(side=LEFT)
+downloadoriginal = Checkbutton(downloadframe, text="原图", variable=v).pack(side=LEFT)#下载原图选择按钮
 downloadbutton = Button(downloadframe, text="下载", command=download).pack(side=RIGHT)#下载按钮
 downloadframe.pack()
 
