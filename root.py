@@ -39,7 +39,8 @@ r.set(0)#默认为不选中
 j = IntVar()#判断在下载的是图集还是图片
 j.set(0)#0为图集，1为图片
 n = 1
-
+f = IntVar()#判断是否失败过
+f.set(0)
 
 def gethtml(url):#获取网页源码
     html_parser = HTMLParser()
@@ -133,8 +134,9 @@ def downloadall(html):#下载所有图片
             originalimgsave(originalimgurl.get(),imgname.get())
 
         if a.get() == 2:#有图片下载失败就停止下载
-            if j.get() == 0:#如果正下载的是图集
-                address.set(address.get()+"/"+name.get())
+            if j.get() == 0 and f.get() == 0:#如果正下载的是图集且未失败过
+                address.set(address.get()+"/"+name.get())#向路径中添加正在下载的文件夹
+                f.set(1)
             a.set(0)
             over = Toplevel()
             over.resizable(0,0)
@@ -150,6 +152,8 @@ def downloadall(html):#下载所有图片
             over = Toplevel()
             over.resizable(0,0)
             Label(over, text="下载完成").pack(padx=20, pady=5)
+            if f.get() == 1:#如果失败过，将路径设定为上一层
+                address.set(re.findall(re.compile(r'(.*)(?=/.*)'),str(address.get()))[0])
             url.set("")
             name.set("未知")
             number.set("未知")
