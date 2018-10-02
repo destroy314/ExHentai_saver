@@ -2,6 +2,7 @@ from html.parser import HTMLParser
 from tkinter.filedialog import *
 from tkinter import *
 import urllib.request
+import threading
 import requests
 import time, re, os
 
@@ -9,7 +10,6 @@ import time, re, os
 root = Tk()
 root.title("")
 root.iconbitmap("favicon.ico")
-
 
 headers = {
     'User-Agent':
@@ -30,8 +30,9 @@ imgname = StringVar()
 imgurl = StringVar()
 originalimgurl = StringVar()
 newurl = StringVar()
-a = IntVar()#记录图片下载失败次数
-a.set(0)
+status = StringVar()#当前下载状态
+a = IntVar()#记录图片下载尝试次数
+a.set(1)
 v = IntVar()#判断是否选中下载原图复选框
 v.set(1)#默认为选中
 r = IntVar()#判断是否选中重命名复选框
@@ -107,6 +108,7 @@ def pagere(pageurl):
 
 
 def downloadall(html):#下载所有图片
+    status.set("开始下载...")
     global n
     judgmenturl = str(url.get())
     galleryre = re.compile(r'exhentai.org/s/')#检查地址是图集还是图片
@@ -133,30 +135,28 @@ def downloadall(html):#下载所有图片
         else:
             originalimgsave(originalimgurl.get(),imgname.get())
 
-        if a.get() == 2:#有图片下载失败就停止下载
+        if a.get() == 3:#有图片下载失败就停止下载
             if j.get() == 0 and f.get() == 0:#如果正下载的是图集且未失败过
                 address.set(address.get()+"/"+name.get())#向路径中添加正在下载的文件夹
                 f.set(1)
-            a.set(0)
-            over = Toplevel()
-            over.resizable(0,0)
-            Label(over, text=imgname.get()+"下载失败").pack(padx=20, pady=5)
-            url.set("")
-            name.set("未知")
-            number.set("未知")
+            a.set(1)
+            status.set(imgname.get()+"下载失败")
+            #url.set("")
+            #name.set("未知")
+            #number.set("未知")
+            active()
             break
         else:
-            a.set(0)
+            a.set(1)
 
         if url.get() == nexturl.get():#如果下一页链接与当前页链接相同则完成下载
-            over = Toplevel()
-            over.resizable(0,0)
-            Label(over, text="下载完成").pack(padx=20, pady=5)
+            status.set("下载完成")
             if f.get() == 1:#如果失败过，将路径设定为上一层
                 address.set(re.findall(re.compile(r'(.*)(?=/.*)'),str(address.get()))[0])
             url.set("")
             name.set("未知")
             number.set("未知")
+            active()
             n = 1
             break
         else:#设定新的链接
@@ -167,26 +167,28 @@ def downloadall(html):#下载所有图片
 def imgsave(saveimgurl,saveimgname):#下载这张图片
     url = str(saveimgurl)
     path = str(imgpath.get())
-    while a.get() < 2:#服务器无响应的异常处理
+    while a.get() < 3:#服务器无响应的异常处理
         try:
+            status.set("第"+str(a.get())+"次下载"+saveimgname+"...")
             urllib.request.urlretrieve(url, path+"/"+saveimgname)#下载图片
         except:
             a.set(a.get() + 1)
             time.sleep(1)#若失败则将a加一并等待一秒
         else:
-            a.set(0)
+            a.set(1)
             break#若成功则跳出循环
-    a.set(0)
+    a.set(1)
     pagere(newurl.get())
     url = str(imgurl.get())
-    while a.get() < 2:#从新链接下载图片
+    while a.get() < 3:#从新链接下载图片
         try:
+            status.set("第"+a.get()+"次下载新"+saveimgname+"...")
             urllib.request.urlretrieve(url, path+"/"+saveimgname)
         except:
             a.set(a.get() + 1)
             time.sleep(1)
         else:
-            a.set(0)
+            a.set(1)
             break
 
 
@@ -194,52 +196,95 @@ def originalimgsave(saveoriginalimgurl,saveimgname):#下载这张图片的原始
     path = str(imgpath.get())
     while 1:#服务器无响应的异常处理
         try:#获取服务器响应
+            status.set("获取原图地址...")
             response = requests.get(saveoriginalimgurl, headers=headers, allow_redirects=False)#获取原图真实地址
         except:
             time.sleep(1)
         else:
             break
     realurl = response.headers["Location"]
-    while a.get() < 2:#服务器无响应的异常处理
+    while a.get() < 3:#服务器无响应的异常处理
         try:
+            status.set("第"+str(a.get())+"次下载原图"+saveimgname+"...")
             urllib.request.urlretrieve(realurl, path+"/"+saveimgname)
         except:
             a.set(a.get() + 1)
             time.sleep(1)
         else:
-            a.set(0)
+            a.set(1)
             break
 
 
+def disable():
+    for i in widget:
+        i['state']='disabled'
+
+def active():
+    for i in widget:
+        i['state']='normal'
+
+
 def download():
+    disable()
     html = gethtml(url.get())
     downloadall(html)
 
 
+t = threading.Thread(target = download)
+def down():
+    t.start()
+
+
 urlframe = Frame()
-urlentry = Entry(urlframe, textvariable=url).pack(side=LEFT)#网址输入框
-inquirebutton = Button(urlframe, text="查询", command=inquire).pack(side=RIGHT)#查询按钮
+urlentry = Entry(urlframe, textvariable=url)#网址输入框
+urlentry.pack(side=LEFT)
+inquirebutton = Button(urlframe, text="查询", command=inquire)#查询按钮
+inquirebutton.pack(side=RIGHT)
 urlframe.pack()
 
 nameframe = Frame()
-namelabel = Label(nameframe, text="名称：").pack(side=LEFT)
-namelabel_show = Label(nameframe, textvariable=name).pack(side=RIGHT)#名称框
+namelabel = Label(nameframe, text="名称：")
+namelabel.pack(side=LEFT)
+namelabel_show = Label(nameframe, textvariable=name)#名称框
+namelabel_show.pack(side=RIGHT)
 nameframe.pack()
 
 nunberframe = Frame()
-numberlabel = Label(nunberframe, text="图片数：").pack(side=LEFT)
-numberlabel_show = Label(nunberframe, textvariable=number).pack(side=RIGHT)#图片数框
+numberlabel = Label(nunberframe, text="图片数：")
+numberlabel.pack(side=LEFT)
+numberlabel_show = Label(nunberframe, textvariable=number)#图片数框
+numberlabel_show.pack(side=RIGHT)
 nunberframe.pack()
 
 addressframe = Frame()
-addresslabel_show = Label(addressframe, textvariable=address).pack(side=LEFT)#地址框
-addressbutton = Button(addressframe, text="保存", command=getaddress).pack(side=RIGHT)#保存按钮
+addresslabel_show = Label(addressframe, textvariable=address)#地址框
+addresslabel_show.pack(side=LEFT)
+addressbutton = Button(addressframe, text="保存", command=getaddress)#保存按钮
+addressbutton.pack(side=RIGHT)
 addressframe.pack()
 
 downloadframe = Frame()
-remane = Checkbutton(downloadframe, text="重命名", variable=r).pack(side=LEFT)
-downloadoriginal = Checkbutton(downloadframe, text="原图", variable=v).pack(side=LEFT)#下载原图选择按钮
-downloadbutton = Button(downloadframe, text="下载", command=download).pack(side=RIGHT)#下载按钮
+rename = Checkbutton(downloadframe, text="重命名", variable=r)
+rename.pack(side=LEFT)
+downloadoriginal = Checkbutton(downloadframe, text="原图", variable=v)#下载原图选择按钮
+downloadoriginal.pack(side=LEFT)
+downloadbutton = Button(downloadframe, text="下载", command=down)#下载按钮
+downloadbutton.pack(side=RIGHT)
 downloadframe.pack()
+
+status_show = Entry(root, textvariable=status, state='readonly').pack()
+
+widget = [
+urlentry,
+inquirebutton,
+namelabel,
+namelabel_show,
+numberlabel,
+numberlabel_show,
+addresslabel_show,
+addressbutton,
+rename,
+downloadoriginal,
+downloadbutton]
 
 root.mainloop()
