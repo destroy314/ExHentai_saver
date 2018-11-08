@@ -4,7 +4,7 @@ from tkinter import *
 import urllib.request
 import threading
 import requests
-import time, re, os
+import time, sys, re, os
 
 
 root = Tk()
@@ -39,8 +39,7 @@ r = IntVar()#判断是否选中重命名复选框
 r.set(0)#默认为不选中
 j = IntVar()#判断在下载的是图集还是图片
 j.set(0)#0为图集，1为图片
-n = 1
-f = IntVar()#判断是否失败过
+f = IntVar()#判断路径是否在目标文件夹内
 f.set(0)
 
 def gethtml(url):#获取网页源码
@@ -59,7 +58,7 @@ def getname(html):#获取图集名称
     name.set(legalname)
     if name.get() == "":#如果没有原名
         namere = re.compile(r'<h1 id="gn">([^>]+)</h1>')
-        originalname = "".join(re.findall(namere, html))
+        originalname = re.findall(namere, html)[0]
         legalname = re.sub(r'[?*/\\<>:"|]',"",originalname)
         name.set(legalname)
 
@@ -80,48 +79,48 @@ def getaddress():
 
 
 def pagere(pageurl):
-    global n
     html = gethtml(pageurl)
 
     imgnamere = re.compile(r'<div>([^>]+\.(?:jpg|png))')#匹配图片名称
-    imglist = re.findall(imgnamere,html)
+    imgstr = re.findall(imgnamere,html)[0]
     if r.get() == 0:
-        imgname.set("".join(imglist[0]))#设定图片名称，名称会匹配到两个一样的
+        imgname.set(imgstr)#设定图片名称
     else:
-        imgnamestr = "".join(imglist[0])
         exnamere = re.compile(r'\.(?:jpg|png)')#匹配扩展名
-        exnamelist = re.findall(exnamere,imgnamestr)
-        imgname.set(str(n)+"".join(exnamelist[0]))#图片名称设为编号
+        exnamestr = re.findall(exnamere,imgstr)[0]
+        imagenumberre = re.compile(r'><span>(\d+)</span>')#匹配图片序号
+        imagenumberstr = re.findall(imagenumberre,html)[0]
+        imgname.set(imagenumberstr + exnamestr)#图片名称设为序号
 
     imgurlre = re.compile(r'<img id="img" src="(.+)" style="')#匹配图片地址
-    imgurl.set("".join(re.findall(imgurlre,html)))#设定图片地址
+    imgurl.set(re.findall(imgurlre,html)[0])#设定图片地址
 
     originalimgurlre = re.compile(r'<a href="([^>]+)">Download')#匹配原图地址
     originalimgurl.set("".join(re.findall(originalimgurlre,html)))#设定原图地址
         
     urlre = re.compile(r'load_image.\d+.{15}" href="([^>]+)"><img id')#匹配下一页链接
-    nexturl.set("".join(re.findall(urlre,html)))#设定链接
+    nexturl.set(re.findall(urlre,html)[0])#设定链接
 
     newurlre = re.compile(r'"return nl\(\'(\d{5}-\d{6})\'\)"')#匹配新链接
-    newurl.set("".join(re.findall(newurlre,html)))#设定新链接
-    newurl.set(url.get()+"#?nl="+newurl.get())
+    newurl.set(re.findall(newurlre,html)[0])#设定新链接
+    newurl.set(url.get() + "#?nl=" + newurl.get())
 
 
 def downloadall(html):#下载所有图片
     status.set("开始下载...")
-    global n
     judgmenturl = str(url.get())
     galleryre = re.compile(r'exhentai.org/s/')#检查地址是图集还是图片
     judgment = "".join(re.findall(galleryre,judgmenturl))
-    if judgment == "":
+    if judgment == "":#是图集
         j.set(0)
         imgpath.set(address.get()+"/"+name.get())
         path = str(imgpath.get())
         os.makedirs(path)
         firstre = re.compile(r'<a href="([^>]+)"><img alt="0*1"')#匹配首张图片的链接
-        url.set("".join(re.findall(firstre,html)))
-    else:
+        url.set(re.findall(firstre,html)[0])
+    else:#是图片
         j.set(1)
+        f.set(1)
         imgpath.set(address.get())
         path = str(imgpath.get())
 
@@ -141,9 +140,10 @@ def downloadall(html):#下载所有图片
                 f.set(1)
             a.set(1)
             status.set(imgname.get()+"下载失败")
-            #url.set("")
-            #name.set("未知")
-            #number.set("未知")
+            try:
+                os.remove(address.get()+"/"+imgname.get())
+            except:
+                pass
             active()
             break
         else:
@@ -151,17 +151,16 @@ def downloadall(html):#下载所有图片
 
         if url.get() == nexturl.get():#如果下一页链接与当前页链接相同则完成下载
             status.set("下载完成")
-            if f.get() == 1:#如果失败过，将路径设定为上一层
+            if f.get() == 1:#如果路径在目标文件夹内，将路径设定为上一层
+                f.set(0)
                 address.set(re.findall(re.compile(r'(.*)(?=/.*)'),str(address.get()))[0])
             url.set("")
             name.set("未知")
             number.set("未知")
             active()
-            n = 1
             break
         else:#设定新的链接
             url.set(nexturl.get())
-            n = n + 1
         
 
 def imgsave(saveimgurl,saveimgname):#下载这张图片
@@ -177,6 +176,9 @@ def imgsave(saveimgurl,saveimgname):#下载这张图片
         else:
             a.set(1)
             break#若成功则跳出循环
+    if a.get() != 3:
+        a.set(1)
+        return
     a.set(1)
     pagere(newurl.get())
     url = str(imgurl.get())
@@ -219,6 +221,7 @@ def disable():
     for i in widget:
         i['state']='disabled'
 
+
 def active():
     for i in widget:
         i['state']='normal'
@@ -232,7 +235,14 @@ def download():
 
 t = threading.Thread(target = download)
 def down():
-    t.start()
+    global t
+    if not t.is_alive():
+        t = threading.Thread(target = download)
+        t.start()
+
+
+def stop():
+    sys.exit(0)#如果没有这句，在下载过程中关闭窗口后下载进程仍会运行
 
 
 urlframe = Frame()
@@ -287,4 +297,5 @@ rename,
 downloadoriginal,
 downloadbutton]
 
+root.protocol('WM_DELETE_WINDOW', stop)
 root.mainloop()
