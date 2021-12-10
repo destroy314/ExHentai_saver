@@ -11,7 +11,7 @@
 2. 使用开发者模式访问任意一个ExHentai页面，复制`Network`中`Request Headers`中的`Cookie`项，粘贴至第15行的双引号中。示例：  
 ```
 'Cookie':
-"ipb_member_id=XXXXXX; ipb_pass_hash=XXXXXX; igneous=XXXXXX; s=XXXXXX; sk=XXXXXX; lv=XXXXXX-XXXXXX"
+"u=XXXXXX; sk=XXXXXX; igneous=XXXXXX; ipb_member_id=XXXXXX; ipb_pass_hash=XXXXXX;"
 }
 ```
 

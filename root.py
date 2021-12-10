@@ -1,4 +1,4 @@
-from html.parser import HTMLParser
+from html import unescape
 from tkinter.filedialog import *
 from tkinter import *
 import urllib.request
@@ -43,11 +43,10 @@ f = IntVar()#判断路径是否在目标文件夹内
 f.set(0)
 
 def gethtml(url):#获取网页源码
-    html_parser = HTMLParser()
     request = urllib.request.Request(url, headers=headers)
     page = urllib.request.urlopen(request)
     originalhtml = page.read().decode('utf-8')
-    html = html_parser.unescape(originalhtml)#将html编码的字符转换为原字符
+    html = unescape(originalhtml)#将html编码的字符转换为原字符
     return html
 
 
@@ -81,27 +80,27 @@ def getaddress():
 def pagere(pageurl):
     html = gethtml(pageurl)
 
-    imgnamere = re.compile(r'<div>([^>]+\.(?:jpg|png))')#匹配图片名称
+    imgnamere = re.compile(r'<div>([^>]+?\.(?:jpg|png))')#匹配图片名称
     imgstr = re.findall(imgnamere,html)[0]
     if r.get() == 0:
         imgname.set(imgstr)#设定图片名称
     else:
         exnamere = re.compile(r'\.(?:jpg|png)')#匹配扩展名
         exnamestr = re.findall(exnamere,imgstr)[0]
-        imagenumberre = re.compile(r'><span>(\d+)</span>')#匹配图片序号
+        imagenumberre = re.compile(r'><span>(\d+?)</span>')#匹配图片序号
         imagenumberstr = re.findall(imagenumberre,html)[0]
         imgname.set(imagenumberstr + exnamestr)#图片名称设为序号
 
-    imgurlre = re.compile(r'<img id="img" src="(.+)" style="')#匹配图片地址
+    imgurlre = re.compile(r'<img id="img" src="(.+?)" style="')#匹配图片地址
     imgurl.set(re.findall(imgurlre,html)[0])#设定图片地址
 
-    originalimgurlre = re.compile(r'<a href="([^>]+)">Download')#匹配原图地址
+    originalimgurlre = re.compile(r'<a href="([^>]+?)">Download')#匹配原图地址
     originalimgurl.set("".join(re.findall(originalimgurlre,html)))#设定原图地址
         
-    urlre = re.compile(r'load_image.\d+.{15}" href="([^>]+)"><img id')#匹配下一页链接
+    urlre = re.compile(r'<a id="next" onclick="return load_image.+?" href="(.+?)"><')#匹配下一页链接
     nexturl.set(re.findall(urlre,html)[0])#设定链接
 
-    newurlre = re.compile(r'"return nl\(\'(\d{5}-\d{6})\'\)"')#匹配新链接
+    newurlre = re.compile(r'"return nl\(\'(\d{4,5}-\d{6})\'\)"')#匹配新链接
     newurl.set(re.findall(newurlre,html)[0])#设定新链接
     newurl.set(url.get() + "#?nl=" + newurl.get())
 
